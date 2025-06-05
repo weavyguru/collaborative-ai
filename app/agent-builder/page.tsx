@@ -1,5 +1,7 @@
 "use client"
 import { useSession, signOut } from "next-auth/react"
+import type React from "react"
+
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import Link from "next/link"
@@ -30,6 +32,7 @@ export default function AgentBuilder() {
   const [loadingAgents, setLoadingAgents] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [deletingAgent, setDeletingAgent] = useState<string | null>(null)
 
   // Redirect to sign in if not authenticated
   useEffect(() => {
@@ -89,6 +92,40 @@ export default function AgentBuilder() {
       console.error("Error fetching agent details:", error)
       // Fallback to basic agent data
       setSelectedAgent(agent)
+    }
+  }
+
+  const handleDeleteAgent = async (agent: Agent, event: React.MouseEvent) => {
+    event.stopPropagation() // Prevent triggering the card click
+
+    if (!confirm(`Are you sure you want to delete "${agent.name}"? This action cannot be undone.`)) {
+      return
+    }
+
+    setDeletingAgent(agent.uid)
+
+    try {
+      const response = await fetch(`/api/weavy/agents/${encodeURIComponent(agent.uid)}/delete`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to delete agent")
+      }
+
+      // Remove agent from local state
+      setAgents((prev) => prev.filter((a) => a.uid !== agent.uid))
+
+      // Close detail modal if this agent was selected
+      if (selectedAgent?.uid === agent.uid) {
+        setSelectedAgent(null)
+      }
+    } catch (error) {
+      console.error("Error deleting agent:", error)
+      alert(`Failed to delete agent: ${error instanceof Error ? error.message : "Unknown error"}`)
+    } finally {
+      setDeletingAgent(null)
     }
   }
 
@@ -195,10 +232,33 @@ export default function AgentBuilder() {
                       {agents.map((agent) => (
                         <div key={agent.id} className="col-md-4 mb-4">
                           <div
-                            className="card h-100 cursor-pointer border-hover"
+                            className="card h-100 cursor-pointer border-hover position-relative"
                             onClick={() => handleAgentClick(agent)}
                             style={{ cursor: "pointer" }}
                           >
+                            {/* Delete button */}
+                            <button
+                              className="btn btn-outline-danger btn-sm position-absolute top-0 end-0 m-2"
+                              onClick={(e) => handleDeleteAgent(agent, e)}
+                              disabled={deletingAgent === agent.uid}
+                              style={{ zIndex: 10 }}
+                              title="Delete agent"
+                            >
+                              {deletingAgent === agent.uid ? (
+                                <div className="spinner-border spinner-border-sm" role="status">
+                                  <span className="visually-hidden">Deleting...</span>
+                                </div>
+                              ) : (
+                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                  <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" />
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
+                                  />
+                                </svg>
+                              )}
+                            </button>
+
                             <div className="card-body text-center d-flex flex-column">
                               <img
                                 src={
