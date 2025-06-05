@@ -12,6 +12,18 @@ export default function Home() {
   const weavyInitialized = useRef(false)
   const [isLoading, setIsLoading] = useState(true)
 
+  // Debug session data
+  useEffect(() => {
+    if (session) {
+      console.log("Session data:", {
+        name: session.user?.name,
+        email: session.user?.email,
+        image: session.user?.image,
+        id: session.user?.id,
+      })
+    }
+  }, [session])
+
   // Redirect to sign in if not authenticated
   useEffect(() => {
     if (status === "loading") return // Still loading
@@ -29,6 +41,12 @@ export default function Home() {
     if (!session?.user?.email) {
       throw new Error("No user email available")
     }
+
+    console.log("Token factory called with session data:", {
+      name: session.user.name,
+      email: session.user.email,
+      image: session.user.image,
+    })
 
     try {
       const response = await fetch("/api/weavy/token", {

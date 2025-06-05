@@ -4,6 +4,8 @@ export async function POST(request: NextRequest) {
   try {
     const { userId, name, email, avatar } = await request.json()
 
+    console.log("Token request received with data:", { userId, name, email, avatar: avatar ? "present" : "missing" })
+
     // Validate required fields
     if (!email) {
       return NextResponse.json({ error: "email is required" }, { status: 400 })
@@ -13,6 +15,7 @@ export async function POST(request: NextRequest) {
     const uid = email
 
     // First, upsert the user to ensure they exist in Weavy with proper details
+    console.log("Upserting user before token generation...")
     const userUpsertResponse = await fetch(`${request.nextUrl.origin}/api/weavy/users`, {
       method: "POST",
       headers: {
@@ -27,8 +30,11 @@ export async function POST(request: NextRequest) {
     })
 
     if (!userUpsertResponse.ok) {
-      console.error("Failed to upsert user before token generation")
+      const errorText = await userUpsertResponse.text()
+      console.error("Failed to upsert user before token generation:", errorText)
       // Continue anyway, but log the error
+    } else {
+      console.log("User upsert successful before token generation")
     }
 
     // Create the user payload for token generation

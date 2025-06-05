@@ -4,6 +4,8 @@ export async function POST(request: NextRequest) {
   try {
     const { userId, name, email, avatar } = await request.json()
 
+    console.log("User upsert request received:", { userId, name, email, avatar: avatar ? "present" : "missing" })
+
     // Validate required fields
     if (!email) {
       return NextResponse.json({ error: "email is required" }, { status: 400 })
@@ -31,13 +33,25 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(upsertPayload),
     })
 
+    const responseText = await upsertResponse.text()
+    console.log("Weavy user upsert response status:", upsertResponse.status)
+    console.log("Weavy user upsert response body:", responseText)
+
     if (!upsertResponse.ok) {
-      const errorData = await upsertResponse.text()
-      console.error("Weavy user upsert error:", errorData)
+      console.error("Weavy user upsert error:", {
+        status: upsertResponse.status,
+        body: responseText,
+      })
       return NextResponse.json({ error: "Failed to upsert user" }, { status: upsertResponse.status })
     }
 
-    const userData = await upsertResponse.json()
+    let userData
+    try {
+      userData = JSON.parse(responseText)
+    } catch (e) {
+      console.error("Failed to parse user response:", responseText)
+      return NextResponse.json({ error: "Invalid response from Weavy API" }, { status: 500 })
+    }
 
     console.log("Successfully upserted user:", userData)
 
