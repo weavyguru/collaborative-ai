@@ -1,6 +1,7 @@
 "use client"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useSession } from "next-auth/react"
+import EditAgentModal from "./edit-agent-modal"
 
 interface Agent {
   id: number
@@ -25,6 +26,13 @@ export default function AgentDetail({ agent, onClose }: AgentDetailProps) {
   const { data: session } = useSession()
   const filesRef = useRef<HTMLDivElement>(null)
   const weavyInitialized = useRef(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+
+  const handleAgentUpdated = (updatedAgent: Agent) => {
+    // Update the agent prop would need to be handled by parent component
+    // For now, we'll just close the detail modal and let parent refresh
+    onClose()
+  }
 
   // Token factory function that calls our backend
   const tokenFactory = async () => {
@@ -168,7 +176,7 @@ export default function AgentDetail({ agent, onClose }: AgentDetailProps) {
                     <img
                       src={
                         agent.picture ||
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(agent.name)}&background=6c757d&color=fff&size=100`
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(agent.name) || "/placeholder.svg"}&background=6c757d&color=fff&size=100`
                       }
                       alt={agent.name}
                       className="rounded-circle mb-3"
@@ -259,12 +267,19 @@ export default function AgentDetail({ agent, onClose }: AgentDetailProps) {
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               Close
             </button>
-            <button type="button" className="btn btn-primary">
+            <button type="button" className="btn btn-primary" onClick={() => setShowEditModal(true)}>
               Edit Agent
             </button>
           </div>
         </div>
       </div>
+      {/* Edit Agent Modal */}
+      <EditAgentModal
+        agent={agent}
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onAgentUpdated={handleAgentUpdated}
+      />
     </div>
   )
 }

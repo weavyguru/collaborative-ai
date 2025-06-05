@@ -8,6 +8,7 @@ import Link from "next/link"
 import Script from "next/script"
 import AgentDetail from "../components/agent-detail"
 import CreateAgentModal from "../components/create-agent-modal"
+import EditAgentModal from "../components/edit-agent-modal"
 
 interface Agent {
   id: number
@@ -33,6 +34,8 @@ export default function AgentBuilder() {
   const [error, setError] = useState<string | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [deletingAgent, setDeletingAgent] = useState<string | null>(null)
+  const [editingAgent, setEditingAgent] = useState<Agent | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
 
   // Redirect to sign in if not authenticated
   useEffect(() => {
@@ -132,6 +135,13 @@ export default function AgentBuilder() {
   const handleAgentCreated = () => {
     // Refresh the agents list
     fetchAgents()
+  }
+
+  const handleAgentUpdated = (updatedAgent: Agent) => {
+    // Update the agent in the local state
+    setAgents((prev) => prev.map((agent) => (agent.uid === updatedAgent.uid ? updatedAgent : agent)))
+    setShowEditModal(false)
+    setEditingAgent(null)
   }
 
   // Show loading while checking authentication
@@ -258,6 +268,21 @@ export default function AgentBuilder() {
                                 </svg>
                               )}
                             </button>
+                            {/* Edit button */}
+                            <button
+                              className="btn btn-outline-primary btn-sm position-absolute top-0 end-0 m-2 me-5"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setEditingAgent(agent)
+                                setShowEditModal(true)
+                              }}
+                              style={{ zIndex: 10 }}
+                              title="Edit agent"
+                            >
+                              <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708L10.5 8.207l-3-3L12.146.146zM11.207 9l-3-3L2.5 11.707V14.5h2.793L11.207 9zM1 13.5A1.5 1.5 0 0 1 2.5 12h.793l.853-.854-1.5-1.5L1.793 10.5H1v3z" />
+                              </svg>
+                            </button>
 
                             <div className="card-body text-center d-flex flex-column">
                               <img
@@ -328,6 +353,17 @@ export default function AgentBuilder() {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onAgentCreated={handleAgentCreated}
+      />
+
+      {/* Edit Agent Modal */}
+      <EditAgentModal
+        agent={editingAgent}
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false)
+          setEditingAgent(null)
+        }}
+        onAgentUpdated={handleAgentUpdated}
       />
 
       {/* Bootstrap JS */}
