@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-export async function PUT(request: NextRequest, { params }: { params: { uid: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: { uid: string } }) {
   try {
     const { uid } = params
     const { name, description, instructions } = await request.json()
@@ -23,9 +23,9 @@ export async function PUT(request: NextRequest, { params }: { params: { uid: str
 
     console.log("Updating agent with payload:", JSON.stringify(updatePayload, null, 2))
 
-    // Update agent in Weavy
+    // Update agent in Weavy using PATCH method
     const response = await fetch(`${process.env.WEAVY_URL}/api/agents/${encodeURIComponent(uid)}`, {
-      method: "PUT",
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.WEAVY_API_KEY}`,

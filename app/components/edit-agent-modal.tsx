@@ -60,7 +60,7 @@ export default function EditAgentModal({ agent, isOpen, onClose, onAgentUpdated 
 
     try {
       const response = await fetch(`/api/weavy/agents/${encodeURIComponent(agent.uid)}/update`, {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
