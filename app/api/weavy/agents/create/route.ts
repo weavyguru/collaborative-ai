@@ -9,13 +9,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 })
     }
 
-    // Create agent payload with lowercase "weavy" for provider and model
+    // Generate a UID based on the name
+    // Remove whitespace, convert to lowercase, replace special chars with hyphens
+    // Add timestamp to ensure uniqueness
+    const generateUID = (name: string): string => {
+      const cleanName = name
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "-") // Replace non-alphanumeric with hyphens
+        .replace(/-+/g, "-") // Replace multiple hyphens with single
+        .replace(/^-|-$/g, "") // Remove leading/trailing hyphens
+
+      // Add timestamp to ensure uniqueness and guarantee non-digit requirement
+      const timestamp = Date.now().toString()
+      return `${cleanName}-${timestamp}`
+    }
+
+    // Create agent payload with UID
     const agentPayload = {
+      uid: generateUID(name), // Add the required UID
       name: name.trim(),
-      provider: "weavy", // lowercase as required
-      model: "weavy", // lowercase as required
+      provider: "weavy",
+      model: "weavy",
       // Add optional fields only if they have values
-      ...(description?.trim() && { comment: description.trim() }), // Using comment instead of description
+      ...(description?.trim() && { comment: description.trim() }),
       ...(instructions?.trim() && { instructions: instructions.trim() }),
     }
 
