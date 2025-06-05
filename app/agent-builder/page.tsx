@@ -5,6 +5,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import Script from "next/script"
 import AgentDetail from "../components/agent-detail"
+import CreateAgentModal from "../components/create-agent-modal"
 
 interface Agent {
   id: number
@@ -28,6 +29,7 @@ export default function AgentBuilder() {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
   const [loadingAgents, setLoadingAgents] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   // Redirect to sign in if not authenticated
   useEffect(() => {
@@ -42,30 +44,29 @@ export default function AgentBuilder() {
   }, [session, status, router])
 
   // Fetch agents from Weavy
+  const fetchAgents = async () => {
+    setLoadingAgents(true)
+    setError(null)
+
+    try {
+      const response = await fetch("/api/weavy/agents")
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch agents")
+      }
+
+      const data = await response.json()
+      setAgents(data.agents || [])
+    } catch (error) {
+      console.error("Error fetching agents:", error)
+      setError("Failed to load agents")
+    } finally {
+      setLoadingAgents(false)
+    }
+  }
+
   useEffect(() => {
     if (!session || isLoading) return
-
-    const fetchAgents = async () => {
-      setLoadingAgents(true)
-      setError(null)
-
-      try {
-        const response = await fetch("/api/weavy/agents")
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch agents")
-        }
-
-        const data = await response.json()
-        setAgents(data.agents || [])
-      } catch (error) {
-        console.error("Error fetching agents:", error)
-        setError("Failed to load agents")
-      } finally {
-        setLoadingAgents(false)
-      }
-    }
-
     fetchAgents()
   }, [session, isLoading])
 
@@ -89,6 +90,11 @@ export default function AgentBuilder() {
       // Fallback to basic agent data
       setSelectedAgent(agent)
     }
+  }
+
+  const handleAgentCreated = () => {
+    // Refresh the agents list
+    fetchAgents()
   }
 
   // Show loading while checking authentication
@@ -162,7 +168,7 @@ export default function AgentBuilder() {
                       Agent Builder
                       {agents.length > 0 && <span className="badge bg-secondary ms-2">{agents.length}</span>}
                     </h2>
-                    <button className="btn btn-primary">
+                    <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
                       <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" className="me-2">
                         <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
                         <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
@@ -197,7 +203,7 @@ export default function AgentBuilder() {
                               <img
                                 src={
                                   agent.picture ||
-                                  `https://ui-avatars.com/api/?name=${encodeURIComponent(agent.name)}&background=6c757d&color=fff&size=64`
+                                  `https://ui-avatars.com/api/?name=${encodeURIComponent(agent.name) || "/placeholder.svg"}&background=6c757d&color=fff&size=64`
                                 }
                                 alt={agent.name}
                                 className="rounded-circle mx-auto mb-3"
@@ -241,7 +247,9 @@ export default function AgentBuilder() {
                         </div>
                         <h5 className="text-muted">No agents found</h5>
                         <p className="text-muted small mb-3">Get started by creating your first AI agent</p>
-                        <button className="btn btn-primary">Create Your First Agent</button>
+                        <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
+                          Create Your First Agent
+                        </button>
                       </div>
                     </div>
                   )}
@@ -254,6 +262,13 @@ export default function AgentBuilder() {
 
       {/* Agent Detail Modal */}
       {selectedAgent && <AgentDetail agent={selectedAgent} onClose={() => setSelectedAgent(null)} />}
+
+      {/* Create Agent Modal */}
+      <CreateAgentModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onAgentCreated={handleAgentCreated}
+      />
 
       {/* Bootstrap JS */}
       <Script
