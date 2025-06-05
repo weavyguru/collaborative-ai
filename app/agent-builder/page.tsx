@@ -36,6 +36,7 @@ export default function AgentBuilder() {
   const [deletingAgent, setDeletingAgent] = useState<string | null>(null)
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [loadingAgentDetails, setLoadingAgentDetails] = useState<string | null>(null)
 
   // Redirect to sign in if not authenticated
   useEffect(() => {
@@ -71,6 +72,24 @@ export default function AgentBuilder() {
     }
   }
 
+  // Fetch detailed agent information
+  const fetchAgentDetails = async (agent: Agent): Promise<Agent> => {
+    try {
+      const response = await fetch(`/api/weavy/agents/${encodeURIComponent(agent.uid)}`)
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch agent details")
+      }
+
+      const data = await response.json()
+      return data.agent
+    } catch (error) {
+      console.error("Error fetching agent details:", error)
+      // Fallback to basic agent data
+      return agent
+    }
+  }
+
   useEffect(() => {
     if (!session || isLoading) return
     fetchAgents()
@@ -81,20 +100,27 @@ export default function AgentBuilder() {
   }
 
   const handleAgentClick = async (agent: Agent) => {
+    const detailedAgent = await fetchAgentDetails(agent)
+    setSelectedAgent(detailedAgent)
+  }
+
+  const handleEditAgent = async (agent: Agent, event: React.MouseEvent) => {
+    event.stopPropagation() // Prevent triggering the card click
+
+    setLoadingAgentDetails(agent.uid)
+
     try {
-      // Fetch detailed agent information
-      const response = await fetch(`/api/weavy/agents/${encodeURIComponent(agent.uid)}`)
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch agent details")
-      }
-
-      const data = await response.json()
-      setSelectedAgent(data.agent)
+      // Fetch detailed agent information before editing
+      const detailedAgent = await fetchAgentDetails(agent)
+      setEditingAgent(detailedAgent)
+      setShowEditModal(true)
     } catch (error) {
-      console.error("Error fetching agent details:", error)
+      console.error("Error fetching agent details for editing:", error)
       // Fallback to basic agent data
-      setSelectedAgent(agent)
+      setEditingAgent(agent)
+      setShowEditModal(true)
+    } finally {
+      setLoadingAgentDetails(null)
     }
   }
 
@@ -271,17 +297,20 @@ export default function AgentBuilder() {
                             {/* Edit button */}
                             <button
                               className="btn btn-outline-primary btn-sm position-absolute top-0 end-0 m-2 me-5"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setEditingAgent(agent)
-                                setShowEditModal(true)
-                              }}
+                              onClick={(e) => handleEditAgent(agent, e)}
+                              disabled={loadingAgentDetails === agent.uid}
                               style={{ zIndex: 10 }}
                               title="Edit agent"
                             >
-                              <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708L10.5 8.207l-3-3L12.146.146zM11.207 9l-3-3L2.5 11.707V14.5h2.793L11.207 9zM1 13.5A1.5 1.5 0 0 1 2.5 12h.793l.853-.854-1.5-1.5L1.793 10.5H1v3z" />
-                              </svg>
+                              {loadingAgentDetails === agent.uid ? (
+                                <div className="spinner-border spinner-border-sm" role="status">
+                                  <span className="visually-hidden">Loading...</span>
+                                </div>
+                              ) : (
+                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                  <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708L10.5 8.207l-3-3L12.146.146zM11.207 9l-3-3L2.5 11.707V14.5h2.793L11.207 9zM1 13.5A1.5 1.5 0 0 1 2.5 12h.793l.853-.854-1.5-1.5L1.793 10.5H1v3z" />
+                                </svg>
+                              )}
                             </button>
 
                             <div className="card-body text-center d-flex flex-column">

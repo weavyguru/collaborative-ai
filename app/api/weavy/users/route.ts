@@ -15,10 +15,12 @@ export async function POST(request: NextRequest) {
     // Always upsert the user - PUT will create or update
     const upsertPayload = {
       uid: uid, // Use email as UID
-      name: name || email.split("@")[0],
+      name: name || email.split("@")[0], // Use full name from Google Auth, fallback to email prefix
       email: email,
-      picture: avatar || null,
+      picture: avatar || null, // Include profile picture from Google Auth
     }
+
+    console.log("User upsert payload:", JSON.stringify(upsertPayload, null, 2))
 
     const upsertResponse = await fetch(`${process.env.WEAVY_URL}/api/users/${encodeURIComponent(uid)}`, {
       method: "PUT",
@@ -36,6 +38,8 @@ export async function POST(request: NextRequest) {
     }
 
     const userData = await upsertResponse.json()
+
+    console.log("Successfully upserted user:", userData)
 
     return NextResponse.json({
       success: true,

@@ -34,13 +34,16 @@ export async function POST(request: NextRequest) {
     // Create the user payload for token generation
     const userPayload = {
       sub: uid, // Subject (user ID) - using email as UID
-      name: name || email.split("@")[0],
+      name: name || email.split("@")[0], // Use full name from Google Auth, fallback to email prefix
       email: email,
+      picture: avatar || null, // Include profile picture from Google Auth
       iss: process.env.WEAVY_URL, // Issuer (your Weavy environment URL)
       aud: process.env.WEAVY_URL, // Audience (your Weavy environment URL)
       exp: Math.floor(Date.now() / 1000) + 60 * 60, // Expires in 1 hour
       iat: Math.floor(Date.now() / 1000), // Issued at
     }
+
+    console.log("Token payload:", JSON.stringify(userPayload, null, 2))
 
     // Make request to Weavy to get access token
     const response = await fetch(`${process.env.WEAVY_URL}/api/users/${encodeURIComponent(uid)}/tokens`, {
