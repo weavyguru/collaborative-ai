@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
       uid: knowledgeBaseUID,
       type: "523edd88-4bbf-4547-b60f-2859a6d2ddc1", // Files app GUID
       name: `${name} Knowledge Base`,
+      access: "write",
       ...(description?.trim() && { description: `Knowledge base for ${name}` }),
     }
 
