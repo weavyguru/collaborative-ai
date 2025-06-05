@@ -4,23 +4,18 @@ export async function POST(request: NextRequest) {
   try {
     const { name, description, instructions } = await request.json()
 
-    // Validate required fields according to Weavy API docs
+    // Validate required fields
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 })
     }
 
-    // Create agent payload according to Weavy API specification
-    // Based on the docs, the required fields are typically:
-    // - name (required)
-    // - provider (required)
-    // - model (required)
-    // Optional fields may include: description, instructions, etc.
+    // Create agent payload with lowercase "weavy" for provider and model
     const agentPayload = {
       name: name.trim(),
-      provider: "weavy",
-      model: "weavy",
+      provider: "weavy", // lowercase as required
+      model: "weavy", // lowercase as required
       // Add optional fields only if they have values
-      ...(description?.trim() && { description: description.trim() }),
+      ...(description?.trim() && { comment: description.trim() }), // Using comment instead of description
       ...(instructions?.trim() && { instructions: instructions.trim() }),
     }
 
@@ -38,7 +33,6 @@ export async function POST(request: NextRequest) {
 
     const responseText = await response.text()
     console.log("Weavy API response status:", response.status)
-    console.log("Weavy API response headers:", Object.fromEntries(response.headers.entries()))
     console.log("Weavy API response body:", responseText)
 
     if (!response.ok) {
@@ -46,8 +40,6 @@ export async function POST(request: NextRequest) {
         status: response.status,
         statusText: response.statusText,
         body: responseText,
-        url: `${process.env.WEAVY_URL}/api/agents`,
-        payload: agentPayload,
       })
 
       // Try to parse error response
