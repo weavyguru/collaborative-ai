@@ -10,8 +10,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate a UID based on the name
-    // Remove whitespace, convert to lowercase, replace special chars with hyphens
-    // Add timestamp to ensure uniqueness
     const generateUID = (name: string): string => {
       const cleanName = name
         .toLowerCase()
@@ -24,12 +22,65 @@ export async function POST(request: NextRequest) {
       return `${cleanName}-${timestamp}`
     }
 
-    // Create agent payload with UID
+    const agentUID = generateUID(name)
+    const knowledgeBaseUID = `${agentUID}-kb` // Knowledge base UID
+
+    console.log("Creating knowledge base for agent:", { agentUID, knowledgeBaseUID })
+
+    // Step 1: Create a files app (knowledge base) first
+    const filesAppPayload = {
+      uid: knowledgeBaseUID,
+      type: "523edd88-4bbf-4547-b60f-2859a6d2ddc1", // Files app GUID
+      name: `${name} Knowledge Base`,
+      ...(description?.trim() && { description: `Knowledge base for ${name}` }),
+    }
+
+    console.log("Creating files app with payload:", JSON.stringify(filesAppPayload, null, 2))
+
+    const filesAppResponse = await fetch(`${process.env.WEAVY_URL}/api/apps`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.WEAVY_API_KEY}`,
+      },
+      body: JSON.stringify(filesAppPayload),
+    })
+
+    const filesAppResponseText = await filesAppResponse.text()
+    console.log("Files app response status:", filesAppResponse.status)
+    console.log("Files app response body:", filesAppResponseText)
+
+    if (!filesAppResponse.ok) {
+      console.error("Failed to create files app:", {
+        status: filesAppResponse.status,
+        body: filesAppResponseText,
+      })
+      return NextResponse.json(
+        { error: "Failed to create knowledge base", details: filesAppResponseText },
+        { status: filesAppResponse.status },
+      )
+    }
+
+    let filesAppData
+    try {
+      filesAppData = JSON.parse(filesAppResponseText)
+    } catch (e) {
+      console.error("Failed to parse files app response:", filesAppResponseText)
+      return NextResponse.json(
+        { error: "Invalid response from Weavy API when creating knowledge base" },
+        { status: 500 },
+      )
+    }
+
+    console.log("Successfully created files app:", filesAppData)
+
+    // Step 2: Create agent with the knowledge base ID
     const agentPayload = {
-      uid: generateUID(name), // Add the required UID
+      uid: agentUID,
       name: name.trim(),
       provider: "weavy",
       model: "weavy",
+      knowledge_base_id: filesAppData.id, // Use the ID from the files app response
       // Add optional fields only if they have values
       ...(description?.trim() && { comment: description.trim() }),
       ...(instructions?.trim() && { instructions: instructions.trim() }),
@@ -38,7 +89,7 @@ export async function POST(request: NextRequest) {
     console.log("Creating agent with payload:", JSON.stringify(agentPayload, null, 2))
 
     // Create agent in Weavy
-    const response = await fetch(`${process.env.WEAVY_URL}/api/agents`, {
+    const agentResponse = await fetch(`${process.env.WEAVY_URL}/api/agents`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -47,45 +98,50 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(agentPayload),
     })
 
-    const responseText = await response.text()
-    console.log("Weavy API response status:", response.status)
-    console.log("Weavy API response body:", responseText)
+    const agentResponseText = await agentResponse.text()
+    console.log("Agent API response status:", agentResponse.status)
+    console.log("Agent API response body:", agentResponseText)
 
-    if (!response.ok) {
+    if (!agentResponse.ok) {
       console.error("Weavy create agent error:", {
-        status: response.status,
-        statusText: response.statusText,
-        body: responseText,
+        status: agentResponse.status,
+        statusText: agentResponse.statusText,
+        body: agentResponseText,
       })
+
+      // If agent creation fails, we should consider cleaning up the files app
+      // For now, we'll just log it but you might want to delete the files app
+      console.warn("Agent creation failed, files app was created but agent was not:", filesAppData.id)
 
       // Try to parse error response
       let errorMessage = "Failed to create agent"
-      let errorDetails = responseText
+      let errorDetails = agentResponseText
 
       try {
-        const errorData = JSON.parse(responseText)
+        const errorData = JSON.parse(agentResponseText)
         errorMessage = errorData.message || errorData.error || errorData.title || errorMessage
-        errorDetails = errorData.detail || errorData.details || responseText
+        errorDetails = errorData.detail || errorData.details || agentResponseText
       } catch (e) {
         // If response is not JSON, use the raw text
-        errorMessage = responseText || errorMessage
+        errorMessage = agentResponseText || errorMessage
       }
 
       return NextResponse.json(
         {
           error: errorMessage,
           details: errorDetails,
-          status: response.status,
+          status: agentResponse.status,
+          filesAppCreated: filesAppData.id, // Include this for debugging
         },
-        { status: response.status },
+        { status: agentResponse.status },
       )
     }
 
     let agentData
     try {
-      agentData = JSON.parse(responseText)
+      agentData = JSON.parse(agentResponseText)
     } catch (e) {
-      console.error("Failed to parse agent response:", responseText)
+      console.error("Failed to parse agent response:", agentResponseText)
       return NextResponse.json({ error: "Invalid response from Weavy API" }, { status: 500 })
     }
 
@@ -94,6 +150,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       agent: agentData,
+      knowledgeBase: filesAppData, // Include knowledge base info in response
     })
   } catch (error) {
     console.error("Create agent error:", error)
