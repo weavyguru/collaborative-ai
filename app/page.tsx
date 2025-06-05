@@ -177,7 +177,7 @@ export default function Home() {
         <header className="bg-white shadow-sm border-bottom">
           <div className="container-fluid py-3">
             <div className="d-flex justify-content-between align-items-center">
-              <h1 className="h4 mb-0 fw-bold">Weavy Messenger MVP v2</h1>
+              <h1 className="h4 mb-0 fw-bold">Weavy Messenger MVP</h1>
 
               {/* Navigation */}
               <nav className="d-flex align-items-center gap-4">
