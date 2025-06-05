@@ -14,27 +14,44 @@ export async function POST(request: NextRequest) {
     // Use email as the UID for Weavy
     const uid = email
 
-    // First, upsert the user to ensure they exist in Weavy with proper details
-    console.log("Upserting user before token generation...")
-    const userUpsertResponse = await fetch(`${request.nextUrl.origin}/api/weavy/users`, {
-      method: "POST",
+    // IMPORTANT: First, directly upsert the user to Weavy to ensure they exist with proper details
+    console.log("Directly upserting user to Weavy...")
+
+    const upsertPayload = {
+      uid: uid, // Use email as UID
+      name: name || email.split("@")[0], // Use full name from Google Auth, fallback to email prefix
+      email: email,
+      picture: avatar || null, // Include profile picture from Google Auth
+    }
+
+    console.log("User upsert payload:", JSON.stringify(upsertPayload, null, 2))
+
+    // Direct call to Weavy API to upsert user
+    const upsertResponse = await fetch(`${process.env.WEAVY_URL}/api/users/${encodeURIComponent(uid)}`, {
+      method: "PUT",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.WEAVY_API_KEY}`,
       },
-      body: JSON.stringify({
-        userId: uid, // Use email as userId
-        name,
-        email,
-        avatar,
-      }),
+      body: JSON.stringify(upsertPayload),
     })
 
-    if (!userUpsertResponse.ok) {
-      const errorText = await userUpsertResponse.text()
-      console.error("Failed to upsert user before token generation:", errorText)
-      // Continue anyway, but log the error
-    } else {
-      console.log("User upsert successful before token generation")
+    const upsertResponseText = await upsertResponse.text()
+    console.log("Weavy user upsert response status:", upsertResponse.status)
+    console.log("Weavy user upsert response body:", upsertResponseText)
+
+    if (!upsertResponse.ok) {
+      console.error("Failed to upsert user in Weavy:", upsertResponseText)
+      return NextResponse.json({ error: "Failed to upsert user" }, { status: upsertResponse.status })
+    }
+
+    let userData
+    try {
+      userData = JSON.parse(upsertResponseText)
+      console.log("Successfully upserted user:", userData)
+    } catch (e) {
+      console.error("Failed to parse user response:", upsertResponseText)
+      return NextResponse.json({ error: "Invalid response from Weavy API" }, { status: 500 })
     }
 
     // Create the user payload for token generation

@@ -66,7 +66,6 @@ Create a \`.env.local\` file in the root directory:
 WEAVY_URL=https://your-weavy-environment.weavy.io
 WEAVY_API_KEY=your-weavy-api-key
 NEXT_PUBLIC_WEAVY_URL=https://your-weavy-environment.weavy.io
-NEXT_PUBLIC_WEAVY_API_KEY=your-weavy-api-key
 
 # NextAuth Configuration
 NEXTAUTH_SECRET=your-nextauth-secret
@@ -134,9 +133,8 @@ weavy-messenger-mvp/
 | Variable | Description | Required |
 |----------|-------------|----------|
 | \`WEAVY_URL\` | Your Weavy environment URL | ✅ |
-| \`WEAVY_API_KEY\` | Your Weavy API key | ✅ |
+| \`WEAVY_API_KEY\` | Your Weavy API key (server-side only) | ✅ |
 | \`NEXT_PUBLIC_WEAVY_URL\` | Public Weavy URL for client-side | ✅ |
-| \`NEXT_PUBLIC_WEAVY_API_KEY\` | Public Weavy API key | ✅ |
 | \`NEXTAUTH_SECRET\` | Secret for NextAuth.js | ✅ |
 | \`NEXTAUTH_URL\` | Your application URL | ✅ |
 | \`GOOGLE_CLIENT_ID\` | Google OAuth client ID | ✅ |

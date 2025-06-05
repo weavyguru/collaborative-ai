@@ -40,6 +40,12 @@ export default function AgentDetail({ agent, onClose }: AgentDetailProps) {
       throw new Error("No user email available")
     }
 
+    console.log("Agent Detail - Token factory called with session data:", {
+      name: session.user.name,
+      email: session.user.email,
+      image: session.user.image,
+    })
+
     try {
       const response = await fetch("/api/weavy/token", {
         method: "POST",

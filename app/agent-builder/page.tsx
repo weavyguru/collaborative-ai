@@ -38,6 +38,18 @@ export default function AgentBuilder() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [loadingAgentDetails, setLoadingAgentDetails] = useState<string | null>(null)
 
+  // Debug session data
+  useEffect(() => {
+    if (session) {
+      console.log("Agent Builder - Session data:", {
+        name: session.user?.name,
+        email: session.user?.email,
+        image: session.user?.image,
+        id: session.user?.id,
+      })
+    }
+  }, [session])
+
   // Redirect to sign in if not authenticated
   useEffect(() => {
     if (status === "loading") return // Still loading
